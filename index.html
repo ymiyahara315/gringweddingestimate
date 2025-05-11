@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRING自動お見積り</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+body {
+  background-color: #F0F1F2;
+  color: #25282A;
+  line-height: 1.6;
+  font-size: 16px; /* 基本フォントサイズ */
+}
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+.header h1 {
+  font-size: 2rem;
+  color: #424649;
+  margin-bottom: 10px;
+}
+.content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.form-section {
+  flex: 1 1 60%;
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+.result-section {
+  flex: 1 1 35%;
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+.section-title {
+  color: #424649;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #8A9195;
+  padding-bottom: 8px;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+.option-group {
+  border-left: 3px solid #8A9195;
+  padding-left: 15px;
+  margin-bottom: 10px;
+}
+
+.radio-group {
+  margin-bottom: 10px;
+}
+
+/* Improved Radio and Checkbox Styles */
+.radio-label, .checkbox-label {
+  display: flex;
+  align-items: flex-start; /* Align items to the start for multi-line text */
+  cursor: pointer;
+  margin-bottom: 8px;
+  padding: 12px 15px; /* Increased padding */
+  border-radius: 6px; /* Slightly more rounded corners */
+  border: 1px solid #E7E7EA; /* Subtle border */
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.radio-label:hover, .checkbox-label:hover {
+  background-color: #e9ecef; /* Lighter hover */
+  border-color: #adb5bd;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.radio-label:active, .checkbox-label:active {
+  background-color: #dee2e6; /* Clearer active feedback */
+  transform: translateY(1px); /* Slight press effect */
+}
+
+input[type="radio"], input[type="checkbox"] {
+  margin-right: 12px; /* Increased margin */
+  flex-shrink: 0;
+  margin-top: 4px; /* Adjust for better alignment with text */
+}
+
+/* Selected state styling for Radio buttons */
+.radio-label.selected {
+  background-color: #61685C;
+  color: #FFFFFF;
+  border-color: #50564c;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.radio-label.selected span { /* Ensure text within selected radio label is white */
+    color: #FFFFFF;
+}
+.radio-label.selected .description { /* And description too */
+    color: #f0f0f0;
+}
+.radio-label.selected:hover {
+    background-color: #50564c;
+}
+
+/* Selected state styling for Checkboxes (using .selected class on label) */
+.checkbox-label.selected {
+  background-color: #61685C; /* Same as radio button selected */
+  color: #FFFFFF;
+  border-color: #50564c; /* Same as radio button selected */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.checkbox-label.selected span, /* Target all spans for text color */
+.checkbox-label.selected div > span:first-child { /* Ensure main text is bold and white */
+    color: #FFFFFF;
+    font-weight: bold;
+}
+.checkbox-label.selected .description { /* Description text color */
+    color: #f0f0f0;
+}
+/* Special handling for the "(プランに含まれます)" text if its color needs to be different */
+.checkbox-label.selected .description span[style*="color: #28a745"] {
+    color: #d4edda !important; /* Light green on dark background, or use a lighter shade of white */
+}
+.checkbox-label.selected:hover {
+    background-color: #50564c; /* Darker hover for selected state */
+}
+
+.description {
+  font-size: 0.85rem; 
+  margin-top: 5px;
+  color: #6c757d; 
+  line-height: 1.5;
+}
+.package-description {
+  font-size: 0.85rem;
+  margin: 6px 0 15px 35px; 
+  color: #6c757d;
+  padding-left: 12px;
+  border-left: 2px solid #E7E7EA;
+  white-space: pre-wrap;
+}
+select {
+  width: 100%;
+  padding: 12px; 
+  border: 1px solid #ced4da; 
+  border-radius: 6px; 
+  background-color: #FFFFFF;
+  font-size: 1rem;
+  appearance: none; 
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+}
+
+.result-item {
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #E7E7EA;
+}
+.result-item:last-child {
+  border-bottom: none;
+}
+.result-category {
+  font-weight: bold;
+  color: #495057; 
+  margin-bottom: 8px;
+}
+.result-detail {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  padding-left: 10px;
+  font-size: 0.95rem;
+}
+.total-price {
+  font-size: 1.6rem; 
+  font-weight: bold;
+  color: #25282A;
+  text-align: right;
+  margin-top: 25px; 
+  padding-top: 15px;
+  border-top: 2px solid #424649; 
+  transition: transform 0.2s ease-out, color 0.3s ease-in-out; 
+}
+.total-price.updated { 
+  transform: scale(1.03);
+  color: #0056b3; 
+}
+
+.btn {
+  display: inline-block;
+  padding: 12px 22px; 
+  background-color: #424649;
+  color: white;
+  border: none;
+  border-radius: 6px; 
+  font-size: 1rem; 
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-right: 10px;
+  margin-bottom: 10px; 
+}
+.btn:hover {
+  background-color: #61685C;
+  transform: translateY(-1px); 
+}
+.btn:active {
+  transform: translateY(0px); 
+}
+.btn-accent {
+  background-color: #C8C8C0;
+  color: #25282A;
+}
+.btn-accent:hover {
+  background-color: #b9b9b0;
+}
+
+.location-detail-btn {
+  padding: 10px 18px; 
+  font-size: 0.9rem;   
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  margin-top: 25px; 
+  flex-wrap: wrap;
+}
+.copy-success {
+  color: #28a745; 
+  margin-left: 0; 
+  margin-top: 8px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  width: 100%;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  height: 0; 
+  overflow: hidden;
+}
+.copy-success.visible {
+    opacity: 1;
+    height: auto; 
+    margin-bottom: 10px; 
+}
+.helper-text {
+  margin-left: 0; 
+  margin-top: 15px;
+  font-size: 0.9rem;
+  color: #8A9195;
+  width: 100%;
+}
+
+.options-location-container {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.5s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.4s ease-out;
+}
+.options-location-container.visible {
+  max-height: 2000px; 
+  opacity: 1;
+  margin-top: 20px; 
+}
+
+/* Location Selector Header specific styling */
+.location-selector-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  /* justify-content: space-between; */ /* Removed to place button next to title */
+  margin-bottom: 15px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens if needed, though might not be necessary with current content */
+}
+.location-selector-header .section-title { /* Target title within this header */
+    margin: 0; /* Remove default margin from section-title */
+    border-bottom: none;
+    padding-bottom: 0;
+    /* flex-shrink: 0; /* Prevent title from shrinking too much if button is long */
+}
+.location-selector-header .btn-accent { /* Target the button */
+    /* flex-shrink: 0; /* Prevent button from shrinking */
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  body {
+    font-size: 15px; 
+  }
+  .header h1 {
+    font-size: 1.8rem;
+  }
+  .content {
+    flex-direction: column;
+  }
+  .result-section {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    margin-top: 20px; 
+  }
+  .actions {
+    flex-direction: column; 
+    align-items: stretch; 
+  }
+  .actions .btn {
+    margin-right: 0; 
+    width: 100%;
+  }
+  .actions .btn:last-child {
+    margin-bottom: 0;
+  }
+  .copy-success, .helper-text {
+    text-align: center; 
+  }
+  
+  .location-selector-header {
+    /* For mobile, we want title and button to be side-by-side if possible, */
+    /* but if they don't fit, they should wrap naturally. */
+    /* The flex-wrap: wrap; above will handle this. */
+    /* We remove the column direction to attempt side-by-side first. */
+    /* flex-direction: column; */ /* MODIFIED: Removed to allow side-by-side on mobile */
+    align-items: center; /* Center items if they wrap to new line */
+  }
+  .location-selector-header .btn-accent {
+    margin-top: 0; /* Remove top margin if side-by-side */
+    /* width: auto; /* Already set, good */
+  }
+}
+@media (max-width: 480px) {
+  body {
+    font-size: 14px; 
+  }
+  .header h1 {
+    font-size: 1.6rem;
+  }
+  .form-section, .result-section {
+    padding: 15px; 
+  }
+  .btn {
+    padding: 14px 18px; 
+    font-size: 0.95rem;
+  }
+  .total-price {
+    font-size: 1.4rem;
+  }
+  .radio-label, .checkbox-label {
+    padding: 12px 10px; 
+  }
+  .description, .package-description {
+      font-size: 0.8rem; 
+  }
+  /* If title and button still stack on very small screens, ensure button has some space */
+  .location-selector-header.wrap-active .btn-accent { /* Hypothetical class if JS adds it based on wrapping */
+      margin-top: 10px;
+  }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/react@17/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@17/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+// Data (no changes)
+const basePlans = [
+  { id: 'all-in', name: 'オールインパッケージプラン', price: 330000, description: 'プラン内容：撮影(写真・ムービー)・ヘアメイク・ムービー編集・Ishibashi Seiya指名料・ロケーション1ヶ所(移動費込/施設利用料を除く)・新郎新婦衣装・装飾小物(使い放題)・ブーケ1点\n ※追加費用：スタジオ撮影の場合の施設利用料、遠方撮影の場合の移動費'},
+  { id: 'photo-movie-hairmake', name: '写真+ムービー+ヘアメイクプラン', price: 258500 },
+  { id: 'photo-hairmake', name: '写真+ヘアメイクプラン', price: 148500 },
+  { id: 'movie-hairmake', name: 'ムービー+ヘアメイクプラン', price: 192500 },
+  { id: 'photo-movie', name: '写真+ムービープラン', price: 220000 },
+  { id: 'movie-only', name: 'ムービーのみプラン', price: 143000 },
+  { id: 'photo-only', name: '写真撮影のみプラン', price: 99000 },
+];
+const options = [
+  { id: 'two-locations', name: '2ロケーション撮影(洋館 & forest and sea location)', price: 55000, description: '※施設利用料及び移動費含む' },
+  { id: 'bride-rental', name: '新婦衣装レンタル', price: 33000 },
+  { id: 'groom-rental', name: '新郎衣装レンタル', price: 33000 },
+  { id: 'ishibashi-shimei', name: 'Isibasi Seiya 指名', price: 22000 },
+  { id: 'weekend-fee', name: '土日祝日撮影料', price: 22000 },
+  { id: 'photo-rush', name: '写真お急ぎデータ納品', price: 16500 },
+  { id: 'movie-rush', name: 'ムービーお急ぎデータ納品', price: 16500 },
+  { id: 'remote-shoot', name: '東京・神奈川・千葉・埼玉・茨城以外の撮影', price: 0, description: '日帰りが難しい場合は宿泊費として¥11,000を一律。１人分の往復交通費は別途ご相談'},
+];
+const locations = [
+  { id: 'sandy-ocean', name: 'sandy Ocean location (千葉)', price: 11000 },
+  { id: 'forest-sea', name: 'forest and sea location(千葉)', price: 5500 },
+  { id: 'strata-ocean', name: 'strata Ocean location (千葉)', price: 10000 },
+  { id: 'rocky-ocean-kana', name: 'rocky Ocean location (神奈川)', price: 22000 },
+  { id: 'rocky-island-kana', name: 'Rocky island location (神奈川)', price: 22000 },
+  { id: 'lake-forest-tokyo', name: 'Lake and forest location (東京)', price: 11000 },
+  { id: 'deep-forest-iba', name: 'Deep Forest Location (茨城)', price: 5500 },
+  { id: 'cliffside-ocean-chiba', name: 'Cliffside Ocean Location(千葉)', price: 16500 },
+  { id: 'drivein-beach-chiba', name: 'Drive-in Beach Location(千葉)', price: 11000 },
+  { id: 'classic-villa-chiba', name: 'Classic Villa Location(千葉)', price: 38500, description: '施設利用料 ¥33,000+移動費¥5,500'},
+];
+
+// PlanSelector Component
+function PlanSelector({ selectedPlan, onPlanChange }) {
+  const packagePlanDescription = basePlans.find(plan => plan.id === 'all-in')?.description; 
+  const planSelectionTitleId = "plan-selection-title"; 
+
+  return (
+    <div className="form-group">
+      <h3 className="section-title" id={planSelectionTitleId}>基本プラン選択</h3>
+      <div className="radio-group" role="radiogroup" aria-labelledby={planSelectionTitleId}>
+        {basePlans.map((plan) => (
+          <React.Fragment key={plan.id}>
+            <label
+              className={`radio-label ${selectedPlan === plan.id ? 'selected' : ''}`}
+            >
+              <input
+                type="radio"
+                name="plan"
+                value={plan.id}
+                checked={selectedPlan === plan.id}
+                onChange={() => onPlanChange(plan.id)}
+                aria-describedby={plan.id + "-desc"} 
+              />
+              <span>{plan.name} - ¥{plan.price.toLocaleString()}</span>
+            </label>
+            {plan.description && (
+              <div className="package-description" id={plan.id + "-desc"}>
+                {plan.description}
+              </div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// OptionSelector Component 
+function OptionSelector({ selectedPlan, selectedOptions, onOptionChange }) {
+  const includedInAllInPackage = ['bride-rental', 'groom-rental', 'ishibashi-shimei'];
+  const optionSelectionTitleId = "option-selection-title"; 
+
+  return (
+    <div className="form-group">
+      <h3 className="section-title" id={optionSelectionTitleId}>オプション選択</h3>
+      <div className="option-group" role="group" aria-labelledby={optionSelectionTitleId}>
+        {options.map((option) => {
+          const isIncludedInPlan = selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id);
+          const isChecked = isIncludedInPlan || selectedOptions.includes(option.id);
+          return (
+            <label
+              key={option.id}
+              className={`checkbox-label ${isChecked ? 'selected' : ''}`} 
+              style={{ opacity: isIncludedInPlan && !selectedOptions.includes(option.id) ? 0.7 : 1 }}
+            >
+              <input
+                type="checkbox"
+                value={option.id}
+                checked={isChecked}
+                onChange={() => onOptionChange(option.id)}
+                disabled={isIncludedInPlan}
+                aria-describedby={option.id + "-opt-desc"} 
+              />
+              <div> 
+                <span>{option.name} {option.price > 0 ? `- ¥${option.price.toLocaleString()}` : ''}</span>
+                {isIncludedInPlan && <span className="description" style={{ marginLeft: '5px' }}>(プランに含まれます)</span>}
+                {option.description && (
+                  <div className="description" id={option.id + "-opt-desc"} style={{ textDecoration: isIncludedInPlan ? 'line-through' : 'none'}}>
+                    {option.description}
+                  </div>
+                )}
+              </div>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// LocationSelector Component
+function LocationSelector({ selectedLocation, onLocationChange }) {
+  return (
+    <div className="form-group">
+      <div className="location-selector-header">
+        <h3 className="section-title">ロケーション選択</h3>
+        <a 
+          href="https://gring2022.studio.site/location"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-accent location-detail-btn" 
+        >
+          詳細リンク
+        </a>
+      </div>
+      <div style={{ borderBottom: '2px solid #8A9195', marginBottom: '15px' }}></div>
+      <select
+        value={selectedLocation || ''}
+        onChange={(e) => onLocationChange(e.target.value)}
+        aria-label="ロケーションを選択" 
+      >
+        <option value="">ロケーションを選択してください</option>
+        {locations.map((location) => (
+          <option key={location.id} value={location.id}>
+            {location.name} - ¥{location.price.toLocaleString()}
+          </option>
+        ))}
+      </select>
+      {selectedLocation && locations.find(loc => loc.id === selectedLocation)?.description && (
+        <div className="description" style={{marginTop: '10px'}}>
+          {locations.find(loc => loc.id === selectedLocation).description}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// EstimationResult Component
+function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
+  const includedInAllInPackage = ['bride-rental', 'groom-rental', 'ishibashi-shimei'];
+  const planInfo = selectedPlan ? basePlans.find(plan => plan.id === selectedPlan) : null;
+  const optionsInfo = selectedOptions.map(optId => options.find(opt => opt.id === optId)).filter(Boolean); 
+  const locationInfo = selectedLocation ? locations.find(loc => loc.id === selectedLocation) : null;
+  
+  const includedOptionsInfo = selectedPlan === 'all-in'
+    ? includedInAllInPackage.map(optId => options.find(opt => opt.id === optId)).filter(Boolean)
+    : [];
+  
+  const [prevTotalPrice, setPrevTotalPrice] = React.useState(0);
+  const [totalPrice, setTotalPrice] = React.useState(0);
+  const [animatePrice, setAnimatePrice] = React.useState(false);
+
+  React.useEffect(() => {
+    let currentTotal = 0;
+    if (planInfo) {
+      currentTotal += planInfo.price;
+    }
+    optionsInfo.forEach(option => {
+      if (!(selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id))) {
+        currentTotal += option.price;
+      }
+    });
+    if (locationInfo && selectedPlan !== 'all-in') {
+      currentTotal += locationInfo.price;
+    }
+    
+    if (currentTotal !== prevTotalPrice) {
+        setTotalPrice(currentTotal);
+        setAnimatePrice(true); 
+        const timer = setTimeout(() => setAnimatePrice(false), 600); 
+        setPrevTotalPrice(currentTotal);
+        return () => clearTimeout(timer);
+    } else if (currentTotal === 0 && prevTotalPrice !== 0 && !planInfo) { 
+        setTotalPrice(0);
+        setPrevTotalPrice(0);
+    }
+  }, [selectedPlan, selectedOptions, selectedLocation, planInfo, optionsInfo, locationInfo, prevTotalPrice]);
+
+  const generateCopyText = () => {
+    let text = `【選択プラン】\n`;
+    text += `- 基本プラン: ${planInfo ? planInfo.name : '未選択'} - ¥${planInfo ? planInfo.price.toLocaleString() : 0}\n`;
+    
+    const allSelectedOptions = [];
+    optionsInfo.forEach(option => {
+        if (!(selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id))) {
+            allSelectedOptions.push(`  - ${option.name} - ¥${option.price.toLocaleString()}`);
+        }
+    });
+    includedOptionsInfo.forEach(option => {
+        allSelectedOptions.push(`  - ${option.name} - ¥0 (プランに含まれる)`);
+    });
+
+    if(allSelectedOptions.length > 0){
+        text += `- オプション:\n`;
+        text += allSelectedOptions.join('\n') + '\n';
+    }
+    
+    if (locationInfo) {
+      const locationPrice = selectedPlan === 'all-in' ? 0 : locationInfo.price;
+      text += `- ロケーション: ${locationInfo.name} - ¥${locationPrice.toLocaleString()}${selectedPlan === 'all-in' ? ' (プランに含まれる)' : ''}\n`;
+    }
+    text += `\n【合計金額（税込み）】\n¥${totalPrice.toLocaleString()}`;
+    return text;
+  };
+  
+  const [copySuccess, setCopySuccess] = React.useState('');
+  
+  const handleCopy = () => {
+    if (!planInfo) return; 
+    const textToCopy = generateCopyText();
+    navigator.clipboard.writeText(textToCopy).then(() => {
+      setCopySuccess('コピーしました！');
+      setTimeout(() => setCopySuccess(''), 3000); 
+    }, () => {
+      setCopySuccess('コピーに失敗しました');
+      setTimeout(() => setCopySuccess(''), 3000);
+    });
+  };
+  
+  return (
+    <div className="result-section">
+      <h3 className="section-title">見積もり結果</h3>
+      {!planInfo && <p>基本プランを選択してください</p>}
+      {planInfo && (
+        <>
+          <div className="result-item">
+            <div className="result-category">基本プラン</div>
+            <div className="result-detail">
+              <div>{planInfo.name}</div>
+              <div>¥{planInfo.price.toLocaleString()}</div>
+            </div>
+          </div>
+          
+          {(optionsInfo.length > 0 || includedOptionsInfo.length > 0) && (
+            <div className="result-item">
+              <div className="result-category">オプション</div>
+              {optionsInfo.map(option => (
+                !(selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id)) && (
+                  <div className="result-detail" key={option.id + "-result"}> 
+                    <div>{option.name}</div>
+                    <div>¥{option.price.toLocaleString()}</div>
+                  </div>
+                )
+              ))}
+              {includedOptionsInfo.map(option => (
+                <div className="result-detail" key={option.id + "-result-included"}>
+                  <div>{option.name}</div>
+                  <div>¥0 <span className="description">(プランに含まれる)</span></div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {locationInfo && (
+            <div className="result-item">
+              <div className="result-category">ロケーション</div>
+              <div className="result-detail">
+                <div>{locationInfo.name}</div>
+                {selectedPlan === 'all-in' ? (
+                  <div>¥0 <span className="description">(プランに含まれる)</span></div>
+                ) : (
+                  <div>¥{locationInfo.price.toLocaleString()}</div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <div 
+            className={`total-price ${animatePrice ? 'updated' : ''}`}
+            aria-live="polite" 
+            aria-atomic="true"
+          >
+            合計金額（税込み）: ¥{totalPrice.toLocaleString()}
+          </div>
+          
+          <div className="actions">
+            <button className="btn" onClick={handleCopy} disabled={!planInfo}>
+              見積もりをコピー
+            </button>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLScLmnfU16-SG8AwQQalF8vLTgUvIgMjs0ahhWzrm8vvRUc5XA/viewform"
+               className="btn btn-accent"
+               target="_blank"
+               rel="noopener noreferrer">
+              ご予約に進む
+            </a>
+            {copySuccess && <span className={`copy-success ${copySuccess ? 'visible' : ''}`}>{copySuccess}</span>}
+          </div>
+          
+          <div className="helper-text">
+            プランについてご相談、ご質問がある際はこちらのコピーを公式ラインでお送りください。
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// App Component
+function App() {
+  const [selectedPlan, setSelectedPlan] = React.useState(null);
+  const [selectedOptions, setSelectedOptions] = React.useState([]);
+  const [selectedLocation, setSelectedLocation] = React.useState('');
+  const [showOptionsAndLocation, setShowOptionsAndLocation] = React.useState(false); 
+  
+  const handlePlanChange = (planId) => {
+    setSelectedPlan(planId);
+    if (planId) { 
+        setShowOptionsAndLocation(true);
+    } else { 
+        setShowOptionsAndLocation(false);
+    }
+    setSelectedOptions([]); 
+  };
+  
+  const handleOptionChange = (optionId) => {
+    setSelectedOptions(prev => 
+      prev.includes(optionId) ? prev.filter(id => id !== optionId) : [...prev, optionId]
+    );
+  };
+  
+  const handleLocationChange = (locationId) => {
+    setSelectedLocation(locationId || '');
+  };
+  
+  return (
+    <div className="container">
+      <div className="header">
+        <h1>GRING自動お見積り</h1>
+      </div>
+      <div className="content">
+        <div className="form-section">
+          <PlanSelector
+            selectedPlan={selectedPlan}
+            onPlanChange={handlePlanChange}
+          />
+          <div className={`options-location-container ${showOptionsAndLocation && selectedPlan ? 'visible' : ''}`}>
+            <OptionSelector
+              selectedPlan={selectedPlan}
+              selectedOptions={selectedOptions}
+              onOptionChange={handleOptionChange}
+            />
+            <LocationSelector
+              selectedLocation={selectedLocation}
+              onLocationChange={handleLocationChange}
+            />
+          </div>
+        </div>
+        <EstimationResult
+          selectedPlan={selectedPlan}
+          selectedOptions={selectedOptions}
+          selectedLocation={selectedLocation}
+        />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+</script>
+</body>
+</html>
