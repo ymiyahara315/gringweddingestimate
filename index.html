@@ -167,6 +167,11 @@ select {
   background-position: right 0.75rem center;
   background-size: 16px 12px;
 }
+select:disabled {
+    background-color: #e9ecef;
+    opacity: 0.7;
+    cursor: not-allowed;
+}
 
 .result-item {
   margin-bottom: 15px;
@@ -241,10 +246,17 @@ select {
 
 .actions {
   display: flex;
-  align-items: center;
   margin-top: 25px; 
   flex-wrap: wrap;
 }
+.actions .btn-accent { 
+    order: 1; 
+}
+.actions .btn { 
+    order: 2;
+}
+
+
 .copy-success {
   color: #28a745; 
   margin-left: 0; 
@@ -257,6 +269,7 @@ select {
   transition: opacity 0.3s ease-in-out;
   height: 0; 
   overflow: hidden;
+  order: 3; 
 }
 .copy-success.visible {
     opacity: 1;
@@ -269,6 +282,7 @@ select {
   font-size: 0.9rem;
   color: #8A9195;
   width: 100%;
+  order: 4; 
 }
 
 .options-location-container {
@@ -283,23 +297,34 @@ select {
   margin-top: 20px; 
 }
 
-/* Location Selector Header specific styling */
 .location-selector-header {
   display: flex;
   gap: 10px;
   align-items: center;
-  /* justify-content: space-between; */ /* Removed to place button next to title */
   margin-bottom: 15px;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens if needed, though might not be necessary with current content */
+  flex-wrap: wrap; 
 }
-.location-selector-header .section-title { /* Target title within this header */
-    margin: 0; /* Remove default margin from section-title */
+.location-selector-header .section-title { 
+    margin: 0; 
     border-bottom: none;
     padding-bottom: 0;
-    /* flex-shrink: 0; /* Prevent title from shrinking too much if button is long */
 }
-.location-selector-header .btn-accent { /* Target the button */
-    /* flex-shrink: 0; /* Prevent button from shrinking */
+
+.location-disabled-message {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 5px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border: 1px dashed #ced4da;
+    border-radius: 4px;
+}
+
+/* Style for "宿泊費/交通費別途" text */
+.remote-shoot-fee-text {
+    font-size: 0.8em; /* 少し小さく */
+    color: #777;     /* 少し薄いグレーに */
+    font-style: italic; /* イタリックにするなど、さらに区別しやすく */
 }
 
 
@@ -324,28 +349,30 @@ select {
     flex-direction: column; 
     align-items: stretch; 
   }
-  .actions .btn {
+  .actions .btn, .actions .btn-accent { 
     margin-right: 0; 
     width: 100%;
+    order: 0; 
+  }
+   .actions .btn-accent { 
+    order: 1; 
+  }
+  .actions .btn { 
+    order: 2; 
   }
   .actions .btn:last-child {
     margin-bottom: 0;
   }
   .copy-success, .helper-text {
     text-align: center; 
+    order: 3; 
   }
   
   .location-selector-header {
-    /* For mobile, we want title and button to be side-by-side if possible, */
-    /* but if they don't fit, they should wrap naturally. */
-    /* The flex-wrap: wrap; above will handle this. */
-    /* We remove the column direction to attempt side-by-side first. */
-    /* flex-direction: column; */ /* MODIFIED: Removed to allow side-by-side on mobile */
-    align-items: center; /* Center items if they wrap to new line */
+    align-items: center; 
   }
   .location-selector-header .btn-accent {
-    margin-top: 0; /* Remove top margin if side-by-side */
-    /* width: auto; /* Already set, good */
+    margin-top: 0; 
   }
 }
 @media (max-width: 480px) {
@@ -370,10 +397,6 @@ select {
   }
   .description, .package-description {
       font-size: 0.8rem; 
-  }
-  /* If title and button still stack on very small screens, ensure button has some space */
-  .location-selector-header.wrap-active .btn-accent { /* Hypothetical class if JS adds it based on wrapping */
-      margin-top: 10px;
   }
 }
 </style>
@@ -480,7 +503,10 @@ function OptionSelector({ selectedPlan, selectedOptions, onOptionChange }) {
                 aria-describedby={option.id + "-opt-desc"} 
               />
               <div> 
-                <span>{option.name} {option.price > 0 ? `- ¥${option.price.toLocaleString()}` : ''}</span>
+                <span>
+                  {option.name} 
+                  {option.id === 'remote-shoot' && isChecked ? '' : (option.price > 0 ? ` - ¥${option.price.toLocaleString()}` : (option.id === 'remote-shoot' ? '' : ''))}
+                </span>
                 {isIncludedInPlan && <span className="description" style={{ marginLeft: '5px' }}>(プランに含まれます)</span>}
                 {option.description && (
                   <div className="description" id={option.id + "-opt-desc"} style={{ textDecoration: isIncludedInPlan ? 'line-through' : 'none'}}>
@@ -497,7 +523,7 @@ function OptionSelector({ selectedPlan, selectedOptions, onOptionChange }) {
 }
 
 // LocationSelector Component
-function LocationSelector({ selectedLocation, onLocationChange }) {
+function LocationSelector({ selectedLocation, onLocationChange,isDisabled, disabledMessage }) {
   return (
     <div className="form-group">
       <div className="location-selector-header">
@@ -516,6 +542,7 @@ function LocationSelector({ selectedLocation, onLocationChange }) {
         value={selectedLocation || ''}
         onChange={(e) => onLocationChange(e.target.value)}
         aria-label="ロケーションを選択" 
+        disabled={isDisabled} 
       >
         <option value="">ロケーションを選択してください</option>
         {locations.map((location) => (
@@ -524,7 +551,10 @@ function LocationSelector({ selectedLocation, onLocationChange }) {
           </option>
         ))}
       </select>
-      {selectedLocation && locations.find(loc => loc.id === selectedLocation)?.description && (
+      {isDisabled && disabledMessage && (
+        <div className="location-disabled-message">{disabledMessage}</div>
+      )}
+      {!isDisabled && selectedLocation && locations.find(loc => loc.id === selectedLocation)?.description && (
         <div className="description" style={{marginTop: '10px'}}>
           {locations.find(loc => loc.id === selectedLocation).description}
         </div>
@@ -548,6 +578,9 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
   const [totalPrice, setTotalPrice] = React.useState(0);
   const [animatePrice, setAnimatePrice] = React.useState(false);
 
+  const isTwoLocationOptionSelected = selectedOptions.includes('two-locations');
+  const isRemoteShootSelected = selectedOptions.includes('remote-shoot');
+
   React.useEffect(() => {
     let currentTotal = 0;
     if (planInfo) {
@@ -555,10 +588,13 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
     }
     optionsInfo.forEach(option => {
       if (!(selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id))) {
-        currentTotal += option.price;
+        if (option.id !== 'remote-shoot') { 
+            currentTotal += option.price;
+        }
       }
     });
-    if (locationInfo && selectedPlan !== 'all-in') {
+    // Add location price only if not included in an option (like two-locations or remote-shoot)
+    if (locationInfo && selectedPlan !== 'all-in' && !isTwoLocationOptionSelected && !isRemoteShootSelected) {
       currentTotal += locationInfo.price;
     }
     
@@ -572,28 +608,36 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
         setTotalPrice(0);
         setPrevTotalPrice(0);
     }
-  }, [selectedPlan, selectedOptions, selectedLocation, planInfo, optionsInfo, locationInfo, prevTotalPrice]);
+  }, [selectedPlan, selectedOptions, selectedLocation, planInfo, optionsInfo, locationInfo, prevTotalPrice, isTwoLocationOptionSelected, isRemoteShootSelected]);
 
   const generateCopyText = () => {
     let text = `【選択プラン】\n`;
     text += `- 基本プラン: ${planInfo ? planInfo.name : '未選択'} - ¥${planInfo ? planInfo.price.toLocaleString() : 0}\n`;
     
-    const allSelectedOptions = [];
+    const allSelectedOptionsText = [];
     optionsInfo.forEach(option => {
         if (!(selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id))) {
-            allSelectedOptions.push(`  - ${option.name} - ¥${option.price.toLocaleString()}`);
+            if (option.id === 'remote-shoot') {
+                allSelectedOptionsText.push(`  - ${option.name} - 宿泊費/交通費別途`);
+            } else {
+                allSelectedOptionsText.push(`  - ${option.name} - ¥${option.price.toLocaleString()}`);
+            }
         }
     });
     includedOptionsInfo.forEach(option => {
-        allSelectedOptions.push(`  - ${option.name} - ¥0 (プランに含まれる)`);
+        allSelectedOptionsText.push(`  - ${option.name} - ¥0 (プランに含まれる)`);
     });
 
-    if(allSelectedOptions.length > 0){
+    if(allSelectedOptionsText.length > 0){
         text += `- オプション:\n`;
-        text += allSelectedOptions.join('\n') + '\n';
+        text += allSelectedOptionsText.join('\n') + '\n';
     }
     
-    if (locationInfo) {
+    if (isRemoteShootSelected) {
+        text += `- ロケーション: 撮影場所別途ご相談 (オプションに含まれます)\n`;
+    } else if (isTwoLocationOptionSelected) {
+        text += `- ロケーション: 2ロケーション撮影 (オプションに含まれます)\n`;
+    } else if (locationInfo) { 
       const locationPrice = selectedPlan === 'all-in' ? 0 : locationInfo.price;
       text += `- ロケーション: ${locationInfo.name} - ¥${locationPrice.toLocaleString()}${selectedPlan === 'all-in' ? ' (プランに含まれる)' : ''}\n`;
     }
@@ -632,14 +676,20 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
           {(optionsInfo.length > 0 || includedOptionsInfo.length > 0) && (
             <div className="result-item">
               <div className="result-category">オプション</div>
-              {optionsInfo.map(option => (
-                !(selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id)) && (
+              {optionsInfo.map(option => {
+                if (selectedPlan === 'all-in' && includedInAllInPackage.includes(option.id)) {
+                  return null; 
+                }
+                const displayPrice = option.id === 'remote-shoot' 
+                                     ? <span className="remote-shoot-fee-text">宿泊費/交通費別途</span> 
+                                     : `¥${option.price.toLocaleString()}`;
+                return (
                   <div className="result-detail" key={option.id + "-result"}> 
                     <div>{option.name}</div>
-                    <div>¥{option.price.toLocaleString()}</div>
+                    <div>{displayPrice}</div>
                   </div>
-                )
-              ))}
+                );
+              })}
               {includedOptionsInfo.map(option => (
                 <div className="result-detail" key={option.id + "-result-included"}>
                   <div>{option.name}</div>
@@ -649,9 +699,19 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
             </div>
           )}
           
-          {locationInfo && (
-            <div className="result-item">
-              <div className="result-category">ロケーション</div>
+          <div className="result-item">
+            <div className="result-category">ロケーション</div>
+            {isRemoteShootSelected ? (
+                <div className="result-detail">
+                    <div>遠方撮影</div>
+                    <div><span className="description">(オプションに含まれます)</span></div>
+                </div>
+            ) : isTwoLocationOptionSelected ? (
+                 <div className="result-detail">
+                    <div>2ロケーション撮影</div>
+                    <div><span className="description">(オプションに含まれます)</span></div>
+                </div>
+            ) : locationInfo ? (
               <div className="result-detail">
                 <div>{locationInfo.name}</div>
                 {selectedPlan === 'all-in' ? (
@@ -660,8 +720,13 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
                   <div>¥{locationInfo.price.toLocaleString()}</div>
                 )}
               </div>
-            </div>
-          )}
+            ) : (
+                 <div className="result-detail">
+                    <div>未選択</div>
+                    <div>-</div>
+                </div>
+            )}
+          </div>
           
           <div 
             className={`total-price ${animatePrice ? 'updated' : ''}`}
@@ -672,15 +737,15 @@ function EstimationResult({ selectedPlan, selectedOptions, selectedLocation }) {
           </div>
           
           <div className="actions">
-            <button className="btn" onClick={handleCopy} disabled={!planInfo}>
-              見積もりをコピー
-            </button>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLScLmnfU16-SG8AwQQalF8vLTgUvIgMjs0ahhWzrm8vvRUc5XA/viewform"
-               className="btn btn-accent"
+               className="btn btn-accent" 
                target="_blank"
                rel="noopener noreferrer">
               ご予約に進む
             </a>
+            <button className="btn" onClick={handleCopy} disabled={!planInfo}> 
+              見積もりをコピー
+            </button>
             {copySuccess && <span className={`copy-success ${copySuccess ? 'visible' : ''}`}>{copySuccess}</span>}
           </div>
           
@@ -700,6 +765,9 @@ function App() {
   const [selectedLocation, setSelectedLocation] = React.useState('');
   const [showOptionsAndLocation, setShowOptionsAndLocation] = React.useState(false); 
   
+  const isTwoLocationOptionSelected = selectedOptions.includes('two-locations');
+  const isRemoteShootSelected = selectedOptions.includes('remote-shoot');
+
   const handlePlanChange = (planId) => {
     setSelectedPlan(planId);
     if (planId) { 
@@ -708,18 +776,49 @@ function App() {
         setShowOptionsAndLocation(false);
     }
     setSelectedOptions([]); 
+    setSelectedLocation(''); // Reset location when plan changes
   };
   
   const handleOptionChange = (optionId) => {
-    setSelectedOptions(prev => 
-      prev.includes(optionId) ? prev.filter(id => id !== optionId) : [...prev, optionId]
-    );
+    let newSelectedOptions = [...selectedOptions];
+
+    if (newSelectedOptions.includes(optionId)) {
+      newSelectedOptions = newSelectedOptions.filter(id => id !== optionId);
+    } else {
+      // Handle mutually exclusive options
+      if (optionId === 'two-locations' && newSelectedOptions.includes('remote-shoot')) {
+        newSelectedOptions = newSelectedOptions.filter(id => id !== 'remote-shoot');
+      } else if (optionId === 'remote-shoot' && newSelectedOptions.includes('two-locations')) {
+        newSelectedOptions = newSelectedOptions.filter(id => id !== 'two-locations');
+      }
+      newSelectedOptions.push(optionId);
+    }
+    setSelectedOptions(newSelectedOptions);
+
+    // If "2ロケーション撮影" or "remote-shoot" is selected, clear any manually selected location.
+    if (newSelectedOptions.includes('two-locations') || newSelectedOptions.includes('remote-shoot')) {
+      setSelectedLocation('');
+    }
   };
   
   const handleLocationChange = (locationId) => {
-    setSelectedLocation(locationId || '');
+    // Only allow location change if neither "2ロケーション撮影" nor "remote-shoot" is selected.
+    if (!isTwoLocationOptionSelected && !isRemoteShootSelected) {
+      setSelectedLocation(locationId || '');
+    }
   };
   
+  // Determine if location selection should be disabled and the message
+  let locationDisabled = false;
+  let locationDisabledMessage = "";
+  if (isTwoLocationOptionSelected) {
+      locationDisabled = true;
+      locationDisabledMessage = "2ロケーション撮影オプションに含まれます。";
+  } else if (isRemoteShootSelected) {
+      locationDisabled = true;
+      locationDisabledMessage = "撮影場所は別途ご相談ください";
+  }
+
   return (
     <div className="container">
       <div className="header">
@@ -740,6 +839,8 @@ function App() {
             <LocationSelector
               selectedLocation={selectedLocation}
               onLocationChange={handleLocationChange}
+              isDisabled={locationDisabled} 
+              disabledMessage={locationDisabledMessage} 
             />
           </div>
         </div>
