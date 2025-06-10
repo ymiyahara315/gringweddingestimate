@@ -440,7 +440,9 @@ const locations = [
   { id: 'drivein-beach-chiba', name: 'Drive-in Beach Location(千葉)', price: 11000 },
   { id: 'classic-villa-chiba', name: 'Classic Villa Location(千葉)', price: 38500, description: '施設利用料 ¥33,000+移動費¥5,500'},
 ];
-
+  { id: 'gake-studio', name: 'Gake-studio Location(千葉)', price: 55000, description: '施設利用料 ¥35,000+移動費¥15,000'},
+];
+  
 // PlanSelector Component
 function PlanSelector({ selectedPlan, onPlanChange }) {
   const packagePlanDescription = basePlans.find(plan => plan.id === 'all-in')?.description; 
